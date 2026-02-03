@@ -1,29 +1,33 @@
 import { View, FlatList, Pressable, Alert, ScrollView, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/nativewindui/Text';
-import { useExpenseStore, Transaction } from '@/store/expenseStore';
+import { useExpenseStore, Transaction } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Icon } from '@/components/nativewindui/Icon';
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { id as idLocale, enUS } from 'date-fns/locale';
 import { CustomWheelPicker } from '@/components/CustomWheelPicker';
+import { useColorScheme } from '@/lib/useColorScheme';
+import { CustomAlertModal, AlertButton } from '@/components/CustomAlertModal';
+import { useTranslation } from 'react-i18next';
 
 const START_YEAR = 2020;
 const YEARS = Array.from({ length: 30 }, (_, i) => (START_YEAR + i).toString());
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-const getDaysInMonth = (month: number, year: number) => {
-  return new Date(year, month + 1, 0).getDate();
-};
-import { useColorScheme } from '@/lib/useColorScheme';
-import { CustomAlertModal, AlertButton } from '@/components/CustomAlertModal';
+const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
 
 export default function AnalysisScreen() {
   const db = useSQLiteContext();
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const { transactions, fetchRecentTransactions, deleteTransaction } = useExpenseStore();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'id' ? idLocale : enUS;
+  const MONTHS = useMemo(() => [
+    t('months.jan'), t('months.feb'), t('months.mar'), t('months.apr'),
+    t('months.may'), t('months.jun'), t('months.jul'), t('months.aug'),
+    t('months.sep'), t('months.oct'), t('months.nov'), t('months.dec')
+  ], [t]);
   
   // Date range state
   const [startDate, setStartDate] = useState(() => {
@@ -78,16 +82,16 @@ export default function AnalysisScreen() {
   const handleDeleteTransaction = useCallback((id: number, note: string) => {
     setAlertConfig({
        visible: true,
-       title: "Hapus Transaksi",
-       message: `Yakin ingin menghapus transaksi "${note}"?`,
+       title: t('analysis.deleteTransaction'),
+       message: `${t('analysis.deleteConfirm')} "${note}"?`,
        buttons: [
           { 
-             text: "Batal", 
+             text: t('common.cancel'), 
              style: "cancel", 
              onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) 
           },
           { 
-            text: "Hapus", 
+            text: t('common.delete'), 
             style: "destructive", 
             onPress: async () => {
                setAlertConfig(prev => ({ ...prev, visible: false }));
@@ -114,25 +118,27 @@ export default function AnalysisScreen() {
 
       {/* Transaction Info */}
       <View className="flex-1">
-        <Text className="font-bold font-sans text-[17px] mb-0.5">{item.note || 'No note'}</Text>
+        <Text className="font-bold font-sans text-[17px] mb-0.5">{item.note || t('home.noNote')}</Text>
         <Text className="text-gray-500 font-sans text-[16px]">{item.category_name}</Text>
-        <Text className="text-gray-400 font-sans text-[14px] mt-1">{format(parseISO(item.date), 'dd MMM yyyy', { locale: id })}</Text>
+        <Text className="text-gray-400 font-sans text-[14px] mt-1">{format(parseISO(item.date), 'dd MMM yyyy', { locale: dateLocale })}</Text>
       </View>
 
       {/* Amount & Delete */}
       <View className="items-end gap-2">
-        <Text className="font-bold font-sans text-[18px]">-Rp {item.amount.toLocaleString('id-ID')}</Text>
+        <Text className={`font-bold font-sans text-[18px] ${item.type === 'income' ? 'text-emerald-500' : ''}`}>
+          {item.type === 'income' ? '+' : '-'}Rp {item.amount.toLocaleString('id-ID')}
+        </Text>
         
         {/* Delete Button */}
         <Pressable 
-          onPress={() => handleDeleteTransaction(item.id, item.note || 'transaksi ini')}
+          onPress={() => handleDeleteTransaction(item.id, item.note || t('home.noNote'))}
           className="p-1"
         >
           <Icon name="trash" size={18} color="#EF4444" />
         </Pressable>
       </View>
     </View>
-  ), [handleDeleteTransaction]);
+  ), [handleDeleteTransaction, t, dateLocale]);
 
   const ListHeader = useMemo(() => (
     <View className="px-5 pt-5 pb-2">
@@ -141,7 +147,7 @@ export default function AnalysisScreen() {
 
       {/* Breakdown Cards */}
       <View className="mb-6">
-        <Text variant="title3" className="font-bold font-sans mb-4">Breakdown</Text>
+        <Text variant="title3" className="font-bold font-sans mb-4">{t('analysis.breakdown')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row -mx-5 px-5" contentContainerStyle={{ paddingRight: 20 }}>
           {categoryBreakdown.map((item) => (
             <View key={item.name} className="mr-3">
@@ -173,20 +179,20 @@ export default function AnalysisScreen() {
           ))}
         </ScrollView>
         {categoryBreakdown.length === 0 && (
-          <Text className="text-gray-400 text-center py-10">No expenses found for this period.</Text>
+          <Text className="text-gray-400 text-center py-10">{t('analysis.noExpenses')}</Text>
         )}
       </View>
 
       {/* All Transactions Header */}
-      <Text variant="title3" className="font-bold font-sans mb-4">All Transactions</Text>
+      <Text variant="title3" className="font-bold font-sans mb-4">{t('analysis.allTransactions')}</Text>
     </View>
-  ), [categoryBreakdown, totalFiltered, filteredData.length]);
+  ), [categoryBreakdown, totalFiltered, filteredData.length, t]);
   
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header with Date Range */}
       <View className="px-4 py-4 border-b dark:border-gray-800 border-gray-200 bg-background z-10">
-        <Text className="text-2xl font-bold font-sans mb-4">Analytic</Text>
+        <Text className="text-2xl font-bold font-sans mb-4">{t('analysis.title')}</Text>
         
         {/* Date Range Picker - Pill Style */}
         <View className="flex-row items-center justify-center gap-3">
@@ -198,7 +204,7 @@ export default function AnalysisScreen() {
             className="flex-row items-center bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
           >
             <Icon name="calendar" size={16} color={colorScheme === 'dark' ? 'white' : 'black'} />
-            <Text className="ml-2 font-medium font-sans">{format(startDate, 'dd MMM yyyy', { locale: id })}</Text>
+            <Text className="ml-2 font-medium font-sans">{format(startDate, 'dd MMM yyyy', { locale: dateLocale })}</Text>
           </Pressable>
 
           <Text className="text-gray-400">—</Text>
@@ -211,7 +217,7 @@ export default function AnalysisScreen() {
             className="flex-row items-center bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
           >
             <Icon name="calendar" size={16} color={colorScheme === 'dark' ? 'white' : 'black'} />
-            <Text className="ml-2 font-medium font-sans">{format(endDate, 'dd MMM yyyy', { locale: id })}</Text>
+            <Text className="ml-2 font-medium font-sans">{format(endDate, 'dd MMM yyyy', { locale: dateLocale })}</Text>
           </Pressable>
         </View>
       </View>
@@ -223,7 +229,7 @@ export default function AnalysisScreen() {
         ListHeaderComponent={() => ListHeader}
         ListEmptyComponent={() => (
           <View className="px-5">
-            <Text className="text-gray-400 text-center py-10">No transactions found.</Text>
+            <Text className="text-gray-400 text-center py-10">{t('analysis.noTransactions')}</Text>
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -239,7 +245,7 @@ export default function AnalysisScreen() {
         <View className="flex-1 justify-center items-center bg-black/50 px-6">
           <View className="bg-white dark:bg-gray-900 w-full rounded-[32px] p-6 shadow-xl border border-gray-100 dark:border-gray-800">
             <Text className="text-xl font-bold font-sans text-center mb-6 text-black dark:text-white">
-                {activePicker === 'start' ? 'Mulai Tanggal' : 'Sampai Tanggal'}
+                {activePicker === 'start' ? t('analysis.startDate') : t('analysis.endDate')}
             </Text>
             
             {/* Context Headers */}

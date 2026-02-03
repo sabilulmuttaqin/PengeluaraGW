@@ -1,9 +1,10 @@
-import { View, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text } from '@/components/nativewindui/Text';
 import { Icon } from '@/components/nativewindui/Icon';
 import { useState, useEffect } from 'react';
 import { COLORS } from '@/theme/colors';
 import { CustomAlertModal, AlertButton } from '@/components/CustomAlertModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CategoryFormModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface CategoryFormModalProps {
 }
 
 export function CategoryFormModal({ visible, onClose, onSave, onDelete, initialData, mode }: CategoryFormModalProps) {
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [color, setColor] = useState('#000000'); // Default to black as requested for simplicity or specific color
@@ -80,12 +82,15 @@ export function CategoryFormModal({ visible, onClose, onSave, onDelete, initialD
       onRequestClose={onClose}
     >
         <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 justify-end bg-black/40"
         >
-            <View className="bg-white dark:bg-gray-900 rounded-t-[32px] p-6 pb-10">
+            <View 
+              className="bg-white dark:bg-gray-900 rounded-t-[32px] max-h-[85%]"
+              style={{ paddingBottom: Math.max(insets.bottom, 24) }}
+            >
                 {/* Header */}
-                <View className="flex-row justify-between items-center mb-8">
+                <View className="flex-row justify-between items-center px-6 pt-6 pb-4">
                     <Text className="text-xl font-bold text-center flex-1 ml-6">
                         {mode === 'add' ? 'New Category' : 'Edit Category'}
                     </Text>
@@ -94,8 +99,7 @@ export function CategoryFormModal({ visible, onClose, onSave, onDelete, initialD
                     </Pressable>
                 </View>
 
-                {/* Form */}
-                <View className="gap-6">
+                <ScrollView className="px-6" showsVerticalScrollIndicator={false}>
                     {/* Icon Input */}
                     <View className="items-center">
                         <View className={`w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-full items-center justify-center border-2 border-dashed mb-2 ${
@@ -179,7 +183,7 @@ export function CategoryFormModal({ visible, onClose, onSave, onDelete, initialD
                             </Pressable>
                         )}
                     </View>
-                </View>
+                </ScrollView>
             </View>
 
             <CustomAlertModal

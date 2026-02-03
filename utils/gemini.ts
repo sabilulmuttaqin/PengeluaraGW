@@ -10,23 +10,28 @@ export interface ParsedExpense {
   name: string;
   category: string;
   amount: number;
+  type?: 'expense' | 'income';
 }
 
-export async function parseExpenseText(text: string, availableCategories: string[]): Promise<ParsedExpense | null> {
-  // ... (keep same)
+export async function parseExpenseText(text: string, availableCategories: string[], incomeCategories: string[] = []): Promise<ParsedExpense | null> {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const categoriesStr = availableCategories.join(', ');
+    const incomeCategoriesStr = incomeCategories.join(', ');
     
-    const prompt = `Analisis teks pengeluaran ini: "${text}".
-    Extract informasi pengeluaran menjadi JSON dengan format: { "name": "nama item", "category": "kategori", "amount": angka }
+    const prompt = `Analisis teks transaksi keuangan ini: "${text}".
+    Extract informasi menjadi JSON: { "name": "nama item", "category": "kategori", "amount": angka, "type": "expense" atau "income" }
     
-    Kategori yang tersedia: ${categoriesStr}
+    PENTING: Tentukan apakah ini PEMASUKAN (income) atau PENGELUARAN (expense):
+    - Income keywords: gaji, salary, transfer masuk, terima, dapat, bonus, freelance, investasi, dividen, hadiah
+    - Expense keywords: beli, bayar, belanja, makan, bensin, transport, dll
+    
+    Kategori untuk Pengeluaran: ${categoriesStr}
+    Kategori untuk Pemasukan: ${incomeCategoriesStr || 'Gaji, Freelance, Investasi, Bonus, Transfer, Hadiah, Lainnya'}
     
     Rules:
     - amount harus angka (contoh: 15000)
-    - Gunakan kategori yang paling sesuai
-    - Jika tidak ada kategori yang pas, gunakan "Lainnya"
+    - Gunakan kategori yang paling sesuai berdasarkan type
     - Return hanya JSON valid, tanpa markdown.`;
 
     const result = await model.generateContent(prompt);
@@ -38,16 +43,21 @@ export async function parseExpenseText(text: string, availableCategories: string
     
     const parsed = JSON.parse(jsonMatch[0]);
     
+    // Determine type if not specified
+    const transactionType = parsed.type === 'income' ? 'income' : 'expense';
+    const categoryList = transactionType === 'income' ? incomeCategories : availableCategories;
+    
     // Normalize category
-    if (!availableCategories.includes(parsed.category)) {
-        const match = availableCategories.find(c => c.toLowerCase() === parsed.category.toLowerCase());
-        parsed.category = match || availableCategories[0] || 'Lainnya';
+    if (!categoryList.includes(parsed.category)) {
+        const match = categoryList.find(c => c.toLowerCase() === parsed.category.toLowerCase());
+        parsed.category = match || categoryList[0] || 'Lainnya';
     }
     
     return {
         name: parsed.name,
         category: parsed.category,
-        amount: Number(parsed.amount)
+        amount: Number(parsed.amount),
+        type: transactionType
     };
   } catch (error) {
     console.error('Error parsing text:', error);

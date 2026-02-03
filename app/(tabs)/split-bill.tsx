@@ -1,14 +1,15 @@
 import { View, FlatList, Pressable, Platform, Alert, Modal, ScrollView } from 'react-native';
 import { Text } from '@/components/nativewindui/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useExpenseStore, SplitBill, SplitBillMember } from '@/store/expenseStore';
+import { useExpenseStore, SplitBill, SplitBillMember } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/nativewindui/Icon';
 import { SplitBillModal } from '@/components/SplitBillModal';
 import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { id as idLocale, enUS } from 'date-fns/locale';
 import { useColorScheme } from '@/lib/useColorScheme';
+import { useTranslation } from 'react-i18next';
 
 export default function SplitBillScreen() {
   const insets = useSafeAreaInsets();
@@ -19,6 +20,8 @@ export default function SplitBillScreen() {
   const [selectedBill, setSelectedBill] = useState<SplitBill | null>(null);
   const [members, setMembers] = useState<SplitBillMember[]>([]);
   const { colorScheme } = useColorScheme();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'id' ? idLocale : enUS;
 
   useEffect(() => {
     fetchSplitBills(db);
@@ -26,11 +29,11 @@ export default function SplitBillScreen() {
 
   const handleDelete = (id: number) => {
     Alert.alert(
-      "Hapus Split Bill",
-      "Apakah Anda yakin ingin menghapus riwayat ini?",
+      t('common.delete'),
+      t('splitBill.deleteConfirm'),
       [
-        { text: "Batal", style: "cancel" },
-        { text: "Hapus", style: "destructive", onPress: () => deleteSplitBill(db, id) }
+        { text: t('common.cancel'), style: "cancel" },
+        { text: t('common.delete'), style: "destructive", onPress: () => deleteSplitBill(db, id) }
       ]
     );
   };
@@ -53,7 +56,7 @@ export default function SplitBillScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header - Standardized */}
       <View className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 bg-background z-10">
-        <Text className="text-2xl font-bold font-sans mb-4">Split Bill</Text>
+        <Text className="text-2xl font-bold font-sans mb-4">{t('splitBill.title')}</Text>
       </View>
 
       {/* List */}
@@ -64,7 +67,7 @@ export default function SplitBillScreen() {
         ListEmptyComponent={
             <View className="items-center justify-center py-20">
                 <Icon name="scroll" size={48} color="gray" />
-                <Text className="text-gray-400 mt-4 text-center font-sans">Belum ada riwayat split bill.</Text>
+                <Text className="text-gray-400 mt-4 text-center font-sans">{t('splitBill.noHistory')}</Text>
             </View>
         }
         renderItem={({ item }) => (
@@ -75,14 +78,14 @@ export default function SplitBillScreen() {
                 <View className="flex-row justify-between items-start mb-2">
                     <View className="flex-1">
                         <Text className="font-semibold text-lg font-sans">{item.name}</Text>
-                        <Text className="text-gray-500 text-xs font-sans">{format(new Date(item.date), 'dd MMMM yyyy', { locale: id })}</Text>
+                        <Text className="text-gray-500 text-xs font-sans">{format(new Date(item.date), 'dd MMMM yyyy', { locale: dateLocale })}</Text>
                     </View>
                     <Pressable onPress={() => handleDelete(item.id)} hitSlop={10}>
                         <Icon name="trash" size={18} color="#ef4444" />
                     </Pressable>
                 </View>
                 <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <Text className="text-gray-500 text-sm font-sans">Total</Text>
+                    <Text className="text-gray-500 text-sm font-sans">{t('splitBill.totalBill')}</Text>
                     <Text className="font-bold text-lg font-sans text-primary">Rp {item.total_amount.toLocaleString('id-ID')}</Text>
                 </View>
             </Pressable>
@@ -111,7 +114,7 @@ export default function SplitBillScreen() {
           <View className="bg-background w-full rounded-t-[32px] overflow-hidden max-h-[70%]">
             {/* Header */}
             <View className="px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800 flex-row justify-between items-center">
-              <Text className="font-bold text-lg font-sans">Detail Split Bill</Text>
+              <Text className="font-bold text-lg font-sans">{t('splitBill.detail')}</Text>
               <Pressable onPress={() => setDetailVisible(false)} hitSlop={10}>
                 <Icon name="xmark.circle.fill" size={24} color="#9CA3AF" />
               </Pressable>
@@ -123,15 +126,15 @@ export default function SplitBillScreen() {
                   {/* Bill Info */}
                   <View className="mb-6">
                     <Text className="text-2xl font-bold font-sans">{selectedBill.name}</Text>
-                    <Text className="text-gray-500 mt-1 font-sans">{format(new Date(selectedBill.date), 'dd MMMM yyyy', { locale: id })}</Text>
+                    <Text className="text-gray-500 mt-1 font-sans">{format(new Date(selectedBill.date), 'dd MMMM yyyy', { locale: dateLocale })}</Text>
                     <View className="flex-row items-center mt-3 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl">
-                      <Text className="text-gray-500 flex-1 font-sans">Total Bill</Text>
+                      <Text className="text-gray-500 flex-1 font-sans">{t('splitBill.totalBill')}</Text>
                       <Text className="font-bold text-xl font-sans">Rp {selectedBill.total_amount.toLocaleString('id-ID')}</Text>
                     </View>
                   </View>
 
                   {/* Members */}
-                  <Text className="font-bold text-base mb-3 font-sans">Pembagian ({members.length} orang)</Text>
+                  <Text className="font-bold text-base mb-3 font-sans">{t('splitBill.division')} ({members.length})</Text>
                   {members.map(member => (
                     <View 
                       key={member.id} 
@@ -145,7 +148,7 @@ export default function SplitBillScreen() {
                         </View>
                         <View>
                           <Text className="font-medium font-sans">{member.name}</Text>
-                          {member.is_me && <Text className="text-xs text-gray-500 font-sans">Saya</Text>}
+                          {member.is_me && <Text className="text-xs text-gray-500 font-sans">{t('splitBill.me')}</Text>}
                         </View>
                       </View>
                       <Text className="font-bold font-sans">Rp {Math.ceil(member.share_amount).toLocaleString('id-ID')}</Text>

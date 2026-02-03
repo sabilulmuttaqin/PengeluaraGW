@@ -4,7 +4,7 @@ import { Text } from '@/components/nativewindui/Text';
 import { Icon } from '@/components/nativewindui/Icon';
 import { useState, useEffect } from 'react';
 import { parseExpenseText } from '@/utils/gemini';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useColorScheme } from '@/lib/useColorScheme';
 import {

@@ -1,7 +1,7 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 4;
+  const DATABASE_VERSION = 5;
   // Get current version
   let { user_version: currentDbVersion } = await db.getFirstAsync<{ user_version: number }>(
     'PRAGMA user_version'
@@ -117,6 +117,31 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
         FOREIGN KEY (split_bill_id) REFERENCES split_bills (id) ON DELETE CASCADE
       );
     `);
+  }
+
+  // Income Tracking Migration (v4 -> v5)
+  if (currentDbVersion < 5) {
+    // Add type column to transactions (expense or income)
+    await db.execAsync(`
+      ALTER TABLE transactions ADD COLUMN type TEXT DEFAULT 'expense';
+    `);
+
+    // Add category_type column to categories
+    await db.execAsync(`
+      ALTER TABLE categories ADD COLUMN category_type TEXT DEFAULT 'expense';
+    `);
+
+    // Add default income categories
+    await db.runAsync(
+      `INSERT INTO categories (name, icon, color, category_type) VALUES 
+      ('Gaji', 'emoji:💰', '#10B981', 'income'),
+      ('Freelance', 'emoji:💻', '#10B981', 'income'),
+      ('Investasi', 'emoji:📈', '#10B981', 'income'),
+      ('Bonus', 'emoji:🎉', '#10B981', 'income'),
+      ('Transfer', 'emoji:🔄', '#10B981', 'income'),
+      ('Hadiah', 'emoji:🎁', '#10B981', 'income'),
+      ('Lainnya', 'emoji:💵', '#10B981', 'income');`
+    );
   }
 
   // Update version

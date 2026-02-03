@@ -4,7 +4,7 @@ import { Icon } from '@/components/nativewindui/Icon';
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { parseExpenseImage } from '@/utils/gemini';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useColorScheme } from '@/lib/useColorScheme';
 

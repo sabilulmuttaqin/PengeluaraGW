@@ -1,42 +1,62 @@
 import { View, TextInput, ScrollView, Pressable, Platform, KeyboardAvoidingView, Modal } from 'react-native';
 import { Text } from '@/components/nativewindui/Text';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore, TransactionType } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState, useEffect } from 'react';
-import { useRouter, Stack } from 'expo-router';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { Icon } from '@/components/nativewindui/Icon';
 import { CustomWheelPicker } from '@/components/CustomWheelPicker';
+import { format } from 'date-fns';
+import { id as idLocale, enUS } from 'date-fns/locale';
+import { useActionSheet } from '@expo/react-native-action-sheet';
+import { useColorScheme } from '@/lib/useColorScheme';
+import { useTranslation } from 'react-i18next';
 
 const START_YEAR = 2020;
 const YEARS = Array.from({ length: 30 }, (_, i) => (START_YEAR + i).toString());
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 const getDaysInMonth = (month: number, year: number) => {
   return new Date(year, month + 1, 0).getDate();
 };
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { useActionSheet } from '@expo/react-native-action-sheet';
-import { useColorScheme } from '@/lib/useColorScheme';
 
-export default function AddExpenseScreen() {
+export default function AddTransactionScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const { categories, addExpense, fetchCategories } = useExpenseStore();
   const { showActionSheetWithOptions } = useActionSheet();
   const { colorScheme } = useColorScheme();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'id' ? idLocale : enUS;
+  
+  // Month names from i18n
+  const MONTHS = useMemo(() => [
+    t('months.jan'), t('months.feb'), t('months.mar'), t('months.apr'),
+    t('months.may'), t('months.jun'), t('months.jul'), t('months.aug'),
+    t('months.sep'), t('months.oct'), t('months.nov'), t('months.dec')
+  ], [t]);
   
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [date, setDate] = useState(new Date());
   const [expenseName, setExpenseName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date()); // Temp date for picker
+  const [tempDate, setTempDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  const [transactionType, setTransactionType] = useState<TransactionType>('expense');
+
+  // Filter categories by type
+  const filteredCategories = useMemo(() => {
+    return categories.filter(c => c.category_type === transactionType || (!c.category_type && transactionType === 'expense'));
+  }, [categories, transactionType]);
 
   useEffect(() => {
     fetchCategories(db);
   }, [db]);
+
+  // Reset category when type changes
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [transactionType]);
 
   const handleSubmit = async () => {
     if (!amount || amount === '' || !selectedCategory) return;
@@ -47,7 +67,8 @@ export default function AddExpenseScreen() {
         amount: parseFloat(amount.replace(/[^0-9.]/g, '')),
         category_id: selectedCategory,
         date: date.toISOString(),
-        note: expenseName || 'No note'
+        note: expenseName || t('home.noNote'),
+        type: transactionType
       });
       router.back();
     } catch (e) {
@@ -58,16 +79,16 @@ export default function AddExpenseScreen() {
   };
 
   const handleCategoryPress = () => {
-    const options = [...categories.map(c => `${c.icon.replace('emoji:', '')}  ${c.name}`), 'Cancel'];
+    const options = [...filteredCategories.map(c => `${c.icon.replace('emoji:', '')}  ${c.name}`), t('common.cancel')];
     const cancelButtonIndex = options.length - 1;
 
     showActionSheetWithOptions({
         options,
         cancelButtonIndex,
-        title: 'Select Category'
+        title: transactionType === 'expense' ? t('categories.selectExpenseCategory') : t('categories.selectIncomeCategory')
     }, (selectedIndex) => {
         if (selectedIndex !== undefined && selectedIndex !== cancelButtonIndex) {
-            setSelectedCategory(categories[selectedIndex].id);
+            setSelectedCategory(filteredCategories[selectedIndex].id);
         }
     });
   };
@@ -80,7 +101,6 @@ export default function AddExpenseScreen() {
       className="flex-1 bg-background pt-safe"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 40}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       
       {/* Custom Header */}
       <View className="flex-row items-center justify-between px-4 py-4">
@@ -88,15 +108,39 @@ export default function AddExpenseScreen() {
               <Icon name="arrow.left" size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
           </Pressable>
 
-          <Text className="text-lg font-bold">New Expense</Text>
+          <Text className="text-lg font-bold">
+            {transactionType === 'expense' ? t('transaction.addExpense') : t('transaction.addIncome')}
+          </Text>
 
           <Pressable onPress={() => {
               setAmount('0');
               setExpenseName('');
               setSelectedCategory(null);
           }}>
-              <Text className="text-sm font-medium text-red-500">Clear</Text>
+              <Text className="text-sm font-medium text-red-500">{t('common.cancel')}</Text>
           </Pressable>
+      </View>
+
+      {/* Type Toggle Tabs */}
+      <View className="flex-row mx-6 mb-4 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+        <Pressable 
+          onPress={() => setTransactionType('expense')}
+          className={`flex-1 py-3 rounded-xl items-center ${transactionType === 'expense' ? 'bg-white dark:bg-gray-700 shadow-sm' : ''}`}
+        >
+          <View className="flex-row items-center gap-2">
+            <Icon name="arrow.up" size={14} className={transactionType === 'expense' ? 'text-red-500' : 'text-gray-400'} />
+            <Text className={`font-medium ${transactionType === 'expense' ? 'text-red-500' : 'text-gray-400'}`}>{t('transaction.expense')}</Text>
+          </View>
+        </Pressable>
+        <Pressable 
+          onPress={() => setTransactionType('income')}
+          className={`flex-1 py-3 rounded-xl items-center ${transactionType === 'income' ? 'bg-white dark:bg-gray-700 shadow-sm' : ''}`}
+        >
+          <View className="flex-row items-center gap-2">
+            <Icon name="arrow.down" size={14} className={transactionType === 'income' ? 'text-emerald-500' : 'text-gray-400'} />
+            <Text className={`font-medium ${transactionType === 'income' ? 'text-emerald-500' : 'text-gray-400'}`}>{t('transaction.income')}</Text>
+          </View>
+        </Pressable>
       </View>
 
       <ScrollView 
@@ -109,10 +153,12 @@ export default function AddExpenseScreen() {
         {/* Large Amount Input */}
         <View className="items-center mb-6">
             <View className="flex-row items-center gap-2 mb-4">
-                 <Text className="text-gray-400 text-lg">IDR</Text>
+                 <Text className={`text-lg ${transactionType === 'expense' ? 'text-red-400' : 'text-emerald-400'}`}>
+                   {transactionType === 'expense' ? '-' : '+'} IDR
+                 </Text>
             </View>
             <TextInput
-              className="text-6xl font-bold font-sans text-center text-black dark:text-white"
+              className={`text-6xl font-bold font-sans text-center ${transactionType === 'expense' ? 'text-red-500' : 'text-emerald-500'}`}
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
@@ -133,7 +179,7 @@ export default function AddExpenseScreen() {
             >
                 <Icon name="calendar" size={16} color={colorScheme === 'dark' ? 'white' : 'black'} />
                 <Text className="ml-2 font-medium">
-                    {format(date, 'dd MMM yyyy', { locale: id })}
+                    {format(date, 'dd MMM yyyy', { locale: dateLocale })}
                 </Text>
             </Pressable>
         </View>
@@ -143,10 +189,10 @@ export default function AddExpenseScreen() {
             
             {/* Expense Name */}
             <View>
-                <Text className="text-base font-bold mb-2 ml-1 text-gray-900 dark:text-gray-100">Expense Name</Text>
+                <Text className="text-base font-bold mb-2 ml-1 text-gray-900 dark:text-gray-100">{t('transaction.note')}</Text>
                 <TextInput 
                     className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl px-5 py-4 text-base font-sans text-black dark:text-white"
-                    placeholder="e.g. Nasi Goreng"
+                    placeholder={t('transaction.optional')}
                     placeholderTextColor="#9CA3AF"
                     value={expenseName}
                     onChangeText={setExpenseName}
@@ -155,7 +201,7 @@ export default function AddExpenseScreen() {
 
             {/* Category Picker Trigger */}
             <View>
-                <Text className="text-base font-bold mb-2 ml-1 text-gray-900 dark:text-gray-100">Category</Text>
+                <Text className="text-base font-bold mb-2 ml-1 text-gray-900 dark:text-gray-100">{t('transaction.category')}</Text>
                 <Pressable 
                     onPress={handleCategoryPress}
                     className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl px-5 py-4 flex-row justify-between items-center active:bg-gray-100 dark:active:bg-gray-800"
@@ -167,7 +213,7 @@ export default function AddExpenseScreen() {
                                 <Text className="text-base font-medium">{selectedCategoryObj.name}</Text>
                              </>
                          ) : (
-                             <Text className="text-gray-400 text-base">Select Category</Text>
+                             <Text className="text-gray-400 text-base">{t('transaction.selectCategory')}</Text>
                          )}
                     </View>
                     <Icon name="chevron.down" size={20} color="gray" />
@@ -181,7 +227,7 @@ export default function AddExpenseScreen() {
             onPress={handleSubmit}
             className="bg-black dark:bg-white w-full py-4 rounded-full items-center justify-center mt-10 mb-10 shadow-sm"
         >
-             <Text className="text-white dark:text-black font-bold text-lg">Save Expense</Text>
+             <Text className="text-white dark:text-black font-bold text-lg">{t('common.save')}</Text>
         </Pressable>
 
       </ScrollView>
@@ -195,13 +241,13 @@ export default function AddExpenseScreen() {
       >
         <View className="flex-1 justify-center items-center bg-black/50 px-6">
           <View className="bg-white dark:bg-gray-900 w-full rounded-[32px] p-6 shadow-xl border border-gray-100 dark:border-gray-800">
-            <Text className="text-xl font-bold font-sans text-center mb-6 text-black dark:text-white">Pilih Tanggal</Text>
+            <Text className="text-xl font-bold font-sans text-center mb-6 text-black dark:text-white">{t('transaction.selectDate')}</Text>
             
             {/* Context Headers */}
             <View className="flex-row w-full mb-2 justify-center gap-2">
-              <Text className="w-[60px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">TGL</Text>
-              <Text className="w-[100px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">BULAN</Text>
-              <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">TAHUN</Text>
+              <Text className="w-[60px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">{t('transaction.date').toUpperCase()}</Text>
+              <Text className="w-[100px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">{t('months.jan').length > 0 ? 'BULAN' : 'MONTH'}</Text>
+              <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">{i18n.language === 'id' ? 'TAHUN' : 'YEAR'}</Text>
             </View>
 
             {showDatePicker && (
@@ -228,10 +274,8 @@ export default function AddExpenseScreen() {
                         const newMonth = i;
                         const maxDays = getDaysInMonth(newMonth, d.getFullYear());
                         const currentDay = d.getDate();
-                        // Reset day to 1 to stay in safe range before switching month
                         d.setDate(1); 
                         d.setMonth(newMonth);
-                        // Restore day or clamp to max
                         d.setDate(Math.min(currentDay, maxDays));
                         setTempDate(d);
                     }}
@@ -264,7 +308,7 @@ export default function AddExpenseScreen() {
                  onPress={() => setShowDatePicker(false)}
                  className="flex-1 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 items-center justify-center"
               >
-                 <Text className="font-bold font-sans text-gray-900 dark:text-white">Batal</Text>
+                 <Text className="font-bold font-sans text-gray-900 dark:text-white">{t('common.cancel')}</Text>
               </Pressable>
               <Pressable 
                  onPress={() => {
@@ -273,7 +317,7 @@ export default function AddExpenseScreen() {
                  }}
                  className="flex-1 py-3.5 rounded-2xl bg-black dark:bg-white items-center justify-center"
               >
-                 <Text className="font-bold font-sans text-white dark:text-black">Pilih</Text>
+                 <Text className="font-bold font-sans text-white dark:text-black">{t('common.save')}</Text>
               </Pressable>
             </View>
           </View>

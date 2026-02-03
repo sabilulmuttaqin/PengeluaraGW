@@ -1,4 +1,5 @@
 import '@/global.css';
+import '@/lib/i18n'; // Initialize i18n
 
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import { SQLiteProvider } from 'expo-sqlite';
@@ -177,8 +178,7 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="add-expense" options={{ presentation: 'modal', title: 'Tambah Pengeluaran' }} />
-              <Stack.Screen name="settings-modal" options={{ presentation: 'modal', title: 'Pengaturan' }} />
+              <Stack.Screen name="add-transaction" options={{ headerShown: false }} />
             </Stack>
           </NavThemeProvider>
         </ActionSheetProvider>

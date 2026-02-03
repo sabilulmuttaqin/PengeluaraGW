@@ -55,7 +55,10 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#fefefe"
       },
-
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "softwareKeyboardLayoutMode": "resize"
     },
     "extra": {

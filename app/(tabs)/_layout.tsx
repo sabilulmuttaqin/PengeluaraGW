@@ -42,12 +42,6 @@ export default function TabLayout() {
           }}
         />
 
-        <Tabs.Screen
-          name="add"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
 
         <Tabs.Screen
           name="split-bill"

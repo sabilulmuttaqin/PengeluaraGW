@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { parseExpenseImage, ParsedExpense } from '@/utils/gemini';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore } from '@/store';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useColorScheme } from '@/lib/useColorScheme';
 

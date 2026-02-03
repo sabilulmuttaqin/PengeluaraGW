@@ -11,9 +11,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore } from '@/store';
 import { CustomWheelPicker } from '@/components/CustomWheelPicker';
 import { CustomAlertModal, AlertButton } from '@/components/CustomAlertModal';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage, getCurrentLanguage } from '@/lib/i18n';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
@@ -25,12 +27,14 @@ export default function SettingsScreen() {
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
   const { fetchRecentTransactions, fetchCategories } = useExpenseStore();
+  const { t, i18n } = useTranslation();
   
   const [reminderTimes, setReminderTimes] = useState<ReminderTime[]>([]);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [tempTime, setTempTime] = useState(new Date()); // Untuk state sementara di modal
   const [loading, setLoading] = useState(false);
+  const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
 
   // Alert Config
   const [alertConfig, setAlertConfig] = useState<{
@@ -39,6 +43,12 @@ export default function SettingsScreen() {
       message: string;
       buttons?: AlertButton[];
   }>({ visible: false, title: '', message: '', buttons: [] });
+
+  const toggleLanguage = async () => {
+    const newLang = currentLang === 'id' ? 'en' : 'id';
+    await changeLanguage(newLang);
+    setCurrentLang(newLang);
+  };
 
   useEffect(() => {
     loadReminderTimes();
@@ -211,40 +221,59 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 bg-background z-10">
-          <Text className="text-2xl font-bold font-sans mb-4">Settings</Text>
+          <Text className="text-2xl font-bold font-sans mb-4">{t('settings.title')}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 }}>
       {/* Appearance Section */}
       <View className="mb-8">
-        <Text variant="title3" className="font-semibold mb-4 ml-2">Preferences</Text>
-        <View className="bg-white dark:bg-gray-900 rounded-[20px] shadow-sm border border-gray-100 dark:border-gray-800 p-4 flex-row items-center justify-between">
+        <Text variant="title3" className="font-semibold mb-4 ml-2">{t('settings.preferences')}</Text>
+        
+        {/* Dark Mode */}
+        <View className="bg-white dark:bg-gray-900 rounded-[20px] shadow-sm border border-gray-100 dark:border-gray-800 p-4 flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-3">
                 <View className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center">
                     <Icon name={colorScheme === 'dark' ? 'moon.fill' : 'sun.max.fill'} size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
                 </View>
-                <Text className="font-medium font-sans text-lg pt-1">Dark Mode</Text>
+                <Text className="font-medium font-sans text-lg pt-1">{t('settings.darkMode')}</Text>
             </View>
             <ThemeToggle />
         </View>
+
+        {/* Language Toggle */}
+        <Pressable 
+          onPress={toggleLanguage}
+          className="bg-white dark:bg-gray-900 rounded-[20px] shadow-sm border border-gray-100 dark:border-gray-800 p-4 flex-row items-center justify-between active:scale-[0.98]"
+        >
+            <View className="flex-row items-center gap-3">
+                <View className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center">
+                    <Text className="text-2xl">{currentLang === 'id' ? '🇮🇩' : '🇬🇧'}</Text>
+                </View>
+                <Text className="font-medium font-sans text-lg pt-1">{t('settings.language')}</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+                <Text className="text-gray-500 font-medium">{currentLang === 'id' ? 'Indonesia' : 'English'}</Text>
+                <Icon name="chevron.right" size={14} color="gray" />
+            </View>
+        </Pressable>
       </View>
 
       {/* Notifications Section */}
       <View className="mb-8">
         <View className="flex-row justify-between items-center mb-4 ml-2">
-          <Text variant="title3" className="font-semibold">Reminders</Text>
+          <Text variant="title3" className="font-semibold">{t('settings.reminders')}</Text>
           <Pressable 
             onPress={addReminderTime} 
             className="bg-black dark:bg-white px-4 py-2 rounded-full"
           >
-            <Text className="font-medium text-sm text-white dark:text-black">Add</Text>
+            <Text className="font-medium text-sm text-white dark:text-black">{t('common.add')}</Text>
           </Pressable>
         </View>
         
         <View className="bg-white dark:bg-gray-900 rounded-[20px] shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
           {reminderTimes.length === 0 ? (
             <View className="p-4 items-center">
-              <Text className="text-gray-400 text-sm font-sans">Belum ada reminder. Tap + untuk menambahkan.</Text>
+              <Text className="text-gray-400 text-sm font-sans">{t('settings.noReminder')}</Text>
             </View>
           ) : (
             reminderTimes.map((reminder, index) => (
@@ -279,7 +308,7 @@ export default function SettingsScreen() {
 
       {/* Data Section */}
       <View className="mb-8">
-        <Text variant="title3" className="font-semibold mb-4 ml-2">Data</Text>
+        <Text variant="title3" className="font-semibold mb-4 ml-2">{t('settings.data')}</Text>
         
         {/* Export */}
         <Pressable 
@@ -291,8 +320,8 @@ export default function SettingsScreen() {
                     <Icon name="square.and.arrow.up" size={20} color={colorScheme === 'dark' ? 'white' : 'black'} />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-medium text-lg">Export Database</Text>
-                  <Text className="text-gray-500 text-xs">Backup data ke file</Text>
+                  <Text className="font-medium text-lg">{t('settings.exportDb')}</Text>
+                  <Text className="text-gray-500 text-xs">{t('settings.exportDbDesc')}</Text>
                 </View>
             </View>
             <Icon name="chevron.right" size={16} color="gray" />
@@ -309,8 +338,8 @@ export default function SettingsScreen() {
                     <Icon name="square.and.arrow.down" size={20} color={colorScheme === 'dark' ? 'white' : 'black'} />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-medium text-lg">Import Database</Text>
-                  <Text className="text-gray-500 text-xs">Restore data dari backup</Text>
+                  <Text className="font-medium text-lg">{t('settings.importDb')}</Text>
+                  <Text className="text-gray-500 text-xs">{t('settings.importDbDesc')}</Text>
                 </View>
             </View>
             <Icon name="chevron.right" size={16} color="gray" />
@@ -331,13 +360,13 @@ export default function SettingsScreen() {
     >
       <View className="flex-1 justify-center items-center bg-black/50 px-6">
         <View className="bg-white dark:bg-gray-900 w-full rounded-[32px] p-6 shadow-xl border border-gray-100 dark:border-gray-800">
-          <Text className="text-xl font-bold font-sans text-center mb-6 text-black dark:text-white">Pilih Waktu</Text>
+          <Text className="text-xl font-bold font-sans text-center mb-6 text-black dark:text-white">{t('settings.selectTime')}</Text>
           
           {/* Context Headers */}
           <View className="flex-row w-full mb-2 justify-center gap-2">
-            <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">JAM</Text>
+            <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">{t('settings.hour')}</Text>
             <Text className="w-[20px]"></Text>
-            <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">MENIT</Text>
+            <Text className="w-[80px] text-center font-medium text-xs font-sans text-gray-500 tracking-widest">{t('settings.minute')}</Text>
           </View>
 
           {showTimePicker && (
@@ -371,13 +400,13 @@ export default function SettingsScreen() {
                onPress={() => setShowTimePicker(false)}
                className="flex-1 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 items-center justify-center"
             >
-               <Text className="font-bold font-sans text-gray-900 dark:text-white">Batal</Text>
+               <Text className="font-bold font-sans text-gray-900 dark:text-white">{t('common.cancel')}</Text>
             </Pressable>
             <Pressable 
                onPress={saveNewReminder}
                className="flex-1 py-3.5 rounded-2xl bg-black dark:bg-white items-center justify-center"
             >
-               <Text className="font-bold font-sans text-white dark:text-black">Simpan</Text>
+               <Text className="font-bold font-sans text-white dark:text-black">{t('common.save')}</Text>
             </Pressable>
           </View>
         </View>
