@@ -10,7 +10,6 @@
 - **🔔 Custom Reminders**: Never forget to track! Get notified at 8 PM if you haven't logged any expenses for the day.
 - **💸 Split Bill**: Easily calculate and track your share of shared expenses.
 - **🎤 Voice Recognizer**: Record expenses hands-free using voice input.
-- **🧠 Smart Text**: Automatically messages into structured expense entries.
 ## 🛠 Tech Stack
 
 - **Framework**: [React Native](https://reactnative.dev/) (Expo SDK 50+)
