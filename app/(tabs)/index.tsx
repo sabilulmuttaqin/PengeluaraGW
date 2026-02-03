@@ -13,7 +13,7 @@ import { useColorScheme } from '@/lib/useColorScheme';
 import { SmartTextModal } from '@/components/SmartTextModal';
 import { OCRModal } from '@/components/OCRModal';
 import { ActionMenuModal } from '@/components/ActionMenuModal';
-// import { VoiceModal } from '@/components/VoiceModal';
+import { VoiceModal } from '@/components/VoiceModal';
 
 export default function Dashboard() {
   const db = useSQLiteContext();
@@ -43,7 +43,7 @@ export default function Dashboard() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [ocrVisible, setOCRVisible] = useState(false);
   const [smartTextVisible, setSmartTextVisible] = useState(false);
-  // const [voiceVisible, setVoiceVisible] = useState(false);
+  const [voiceVisible, setVoiceVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     // Categories must be fetched first to be available for calculation
@@ -89,7 +89,7 @@ export default function Dashboard() {
            case 'manual': router.push('/add-expense'); break;
            case 'ocr': setOCRVisible(true); break;
            case 'smart': setSmartTextVisible(true); break;
-          //  case 'voice': setVoiceVisible(true); break;
+           case 'voice': setVoiceVisible(true); break;
        }
   };
 
@@ -261,11 +261,11 @@ export default function Dashboard() {
         visible={ocrVisible}
         onClose={() => setOCRVisible(false)}
       />
-{/* 
+
       <VoiceModal 
         visible={voiceVisible}
         onClose={() => setVoiceVisible(false)}
-      /> */}
+      />
 
       <ActionMenuModal 
         visible={menuVisible} 

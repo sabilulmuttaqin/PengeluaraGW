@@ -104,7 +104,7 @@ export function SmartTextModal({ visible, onClose }: SmartTextModalProps) {
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-xl font-bold">Smart Text</Text>
             <Pressable onPress={onClose} className="p-2 bg-gray-100 rounded-full dark:bg-gray-800">
-              <Icon name="xmark" size={16} color="gray" />
+              <Icon name="plus" size={16} color="gray" />
             </Pressable>
           </View>
 
