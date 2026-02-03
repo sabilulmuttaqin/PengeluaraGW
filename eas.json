@@ -22,7 +22,7 @@
       "developmentClient": false,
       "env": {
         "EXPO_NO_BUNDLE_ANALYZER": "1",
-        "EXPO_PUBLIC_GEMINI_API_KEY": "AIzaSyAZHC4maRymkDLnGXiNLuVw1QRccdzzzPQ"
+        "EXPO_PUBLIC_GEMINI_API_KEY": "YOUR_API_KEY"
       }
     },
     "production": {
